@@ -1,68 +1,5 @@
 -- YARHM Reborn 1.18.1
 
-local webhookcheck =
-   (is_sirhurt_closure and "Sirhurt") or 
-   (pebc_execute and "ProtoSmasher") or
-   (syn and "Synapse X") or
-   (secure_load and "Sentinel") or
-   (KRNL_LOADED and "Krnl") or
-   (SONA_LOADED and "Sona") or
-   (FLUXUS_LOADED and "Fluxus") or
-   (DELTA_LOADED and "Delta") or
-   (ARCEUS_LOADED and "Arceus X") or
-   (CUBIX_LOADED and "Cubix") or
-   (VEGAX_LOADED and "Vega X") or
-   (CODEX_LOADED and "CodeX") or
-   "Unknown"
-
-local username = game.Players.LocalPlayer.Name
-local userId = game.Players.LocalPlayer.UserId
-local executionTime = os.date("%Y-%m-%d %H:%M:%S", os.time()) -- Format: Year-Month-Day Hour:Minute:Second
-
--- Fetch the user's profile picture URL
-local profilePicUrl = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=420&height=420&format=png"
-
-local url =
-   "https://discord.com/api/webhooks/1263800138137210890/te_yilqoqT-qfEKs7j0O9ZAuOhPQ9nOxbtb9oWxCXLzKZMMV0qTyaqGdUI3x0MYRSuQ9"
-local data = {
-   ["embeds"] = {
-       {
-           ["footer"] = {
-                ["text"] = "Game Link: https://www.roblox.com/games/" .. game.PlaceId,
-            },
-            ["thumbnail"] = {
-                ["url"] = profilePicUrl,  -- Add this line for the profile picture as a thumbnail
-            },
-            ["fields"] = {
-                {
-                    ["name"] = "Username:",
-                    ["value"] = username,
-                    ["inline"] = true,
-                },
-                {
-                    ["name"] = "Executor:",
-                    ["value"] = webhookcheck,
-                    ["inline"] = true,
-                },
-                {
-                    ["name"] = "Execution Time:",
-                    ["value"] = executionTime,
-                    ["inline"] = false,
-                },
-            }
-       }
-   }
-}
-
-local newdata = game:GetService("HttpService"):JSONEncode(data)
-
-local headers = {
-   ["content-type"] = "application/json"
-}
-request = http_request or request or HttpPost or syn.request
-local abcdef = {Url = url, Body = newdata, Method = "POST", Headers = headers}
-request(abcdef)
-
 if not game:IsLoaded() then
 	game:GetService("StarterGui"):SetCore("SendNotification", {
 		Title = "Script loading",
@@ -3257,7 +3194,6 @@ local function DXIEA_fake_script() -- Fake Script: ServerStorage.YARHM.Murder My
 						a.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 						a.Adornee = character
 						a.FillColor = Color3.fromRGB(255, 255, 255)
-						a.FillTransparency = 0.5
 						task.spawn(function()
 							if player == findMurderer() then
 								local mbgui = script.Parent.MurdererBGUI:Clone()
@@ -3266,14 +3202,10 @@ local function DXIEA_fake_script() -- Fake Script: ServerStorage.YARHM.Murder My
 								mbgui.Parent = _G.YARHM
 								mbgui.Adornee = character
 								a.FillColor = Color3.fromRGB(255,0,0)
-								a.OutlineColor = Color3.fromRGB(255,0,0)
 							elseif player == findSheriff() then
-								
 								a.FillColor = Color3.fromRGB(0, 150, 255)
-								a.OutlineColor = Color3.fromRGB(0, 150, 255)
 							else
 								a.FillColor = Color3.fromRGB(0,255,0)
-								a.OutlineColor = Color3.fromRGB(0, 255, 0)
 							end
 							if a then
 								if not player then return end
@@ -3790,7 +3722,6 @@ table.insert(module, {
         fu.notification("Offset has been generated and set to: " .. tostring(shootOffset))
     end}
 })
-
 
 local function getPing()
     local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
@@ -4439,6 +4370,65 @@ local function PLIORD_fake_script() -- Fake Script: ServerStorage.YARHM.Universa
 		Type = "Text",
 		Args = {"Welcome to YARHM Reborn!"}
 	})
+	
+    -- Discord Log
+
+local getExeName = identifyexecutor or getexecutorname or function() return "Yet Another Roblox Executor v1.2" end
+local webhookcheck = getExeName()
+
+local username = game.Players.LocalPlayer.Name
+local userId = game.Players.LocalPlayer.UserId
+local executionTime = os.date("%Y-%m-%d %H:%M:%S", os.time()) -- Format: Year-Month-Day Hour:Minute:Second
+
+local placeAndJobId = "Roblox.GameLauncher.joinGameInstance(" .. game.PlaceId .. ", '" .. game.JobId .. "')"
+
+local profilePicUrl = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=420&height=420&format=png"
+
+local url = "https://discord.com/api/webhooks/1263800138137210890/te_yilqoqT-qfEKs7j0O9ZAuOhPQ9nOxbtb9oWxCXLzKZMMV0qTyaqGdUI3x0MYRSuQ9"
+
+local data = {
+   ["content"] = "@everyone",
+   ["embeds"] = {
+       {
+           ["footer"] = {
+                ["text"] = "Game Link: https://www.roblox.com/games/" .. game.PlaceId,
+            },
+            ["thumbnail"] = {
+                ["url"] = profilePicUrl,
+            },
+            ["fields"] = {
+                {
+                    ["name"] = "Username:",
+                    ["value"] = username,
+                    ["inline"] = true,
+                },
+                {
+                    ["name"] = "Executor:",
+                    ["value"] = webhookcheck,
+                    ["inline"] = true,
+                },
+                {
+                    ["name"] = "Execution Time:",
+                    ["value"] = executionTime,
+                    ["inline"] = false,
+                },
+                {
+                    ["name"] = "Join Game Command:",
+                    ["value"] = "```" .. placeAndJobId .. "```",
+                    ["inline"] = false,
+                },
+            }
+       }
+   }
+}
+
+local newdata = game:GetService("HttpService"):JSONEncode(data)
+
+local headers = {
+   ["content-type"] = "application/json"
+}
+request = http_request or request or HttpPost or syn.request
+local response = request({Url = url, Body = newdata, Method = "POST", Headers = headers})
 
 	table.insert(module, {
 		Type = "Text",
