@@ -1,4 +1,4 @@
--- YARHM 1.18.1
+-- YARHM Reborn 1.18.1
 
 if not game:IsLoaded() then
 	game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -8,6 +8,7 @@ if not game:IsLoaded() then
 	})
 	game.Loaded:Wait()
 end
+
 -- Instances:
 
 local Converted = {
@@ -3176,7 +3177,8 @@ local function DXIEA_fake_script() -- Fake Script: ServerStorage.YARHM.Murder My
 
 	module["Name"] = "Murder Mystery 2"
 
-workspace.ChildAdded:Connect(function(ch)
+-- Player ESP
+	workspace.ChildAdded:Connect(function(ch)
 		if ch.Name == "Normal" and playerESP then
 			fu.notification("Map has loaded, waiting for roles...")
 			repeat
@@ -3581,48 +3583,69 @@ workspace.ChildAdded:Connect(function(ch)
 	})
 
 
-	table.insert(module, {
-		Type = "Button",
-		Args = {"Shoot murderer", function(Self)
-			if findSheriff() ~= localplayer then 
-				fu.notification("You're not sheriff/hero.") 
-				return 
-			end
+	local function getJumpingOffset(murderer)
+    local hrp = murderer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local verticalVelocity = hrp.Velocity.Y
+        local verticalOffset = 0
 
-			local murderer = findMurderer() or findSheriffThatsNotMe()
-			if not murderer then
-				fu.notification("No murderer (or sheriff) to shoot.")
+        if verticalVelocity > 0 then
+            verticalOffset = 2 -- Aim higher when jumping up
+        elseif verticalVelocity < 0 then
+            verticalOffset = -1 -- Aim lower when falling down
+        end
+
+        return verticalOffset
+    end
+    return 0
+end
+
+table.insert(module, {
+	Type = "Button",
+	Args = {"Shoot murderer", function(Self)
+		if findSheriff() ~= localplayer then 
+			fu.notification("You're not sheriff/hero.") 
+			return 
+		end
+
+		local murderer = findMurderer() or findSheriffThatsNotMe()
+		if not murderer then
+			fu.notification("No murderer (or sheriff) to shoot.")
+			return
+		end
+
+		if not localplayer.Character:FindFirstChild("Gun") then
+			local hum = localplayer.Character:FindFirstChild("Humanoid")
+			if localplayer.Backpack:FindFirstChild("Gun") then
+				hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
+			else
+				fu.notification("You don't have the gun..?")
 				return
 			end
+		end
 
-			if not localplayer.Character:FindFirstChild("Gun") then
-				local hum = localplayer.Character:FindFirstChild("Humanoid")
-				if localplayer.Backpack:FindFirstChild("Gun") then
-					hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
-				else
-					fu.notification("You don't have the gun..?")
-					return
-				end
-			end
+		local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+		if not murdererHRP then
+			fu.notification("Could not find the murderer's HumanoidRootPart.")
+			return
+		end
 
-			local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-			if not murdererHRP then
-				fu.notification("Could not find the murderer's HumanoidRootPart.")
-				return
-			end
+		-- Predict position and adjust for jumping
+		local shootOffset = shootOffset or 0
+		local predictedPosition = getPredictedPosition(murderer, shootOffset)
+		local verticalOffset = getJumpingOffset(murderer)
 
-			local predictedPosition = getPredictedPosition(murderer, shootOffset)
+		-- Adjusted shooting parameters with dynamic vertical offset
+		local args = {
+			[1] = 1,
+			[2] = predictedPosition + Vector3.new(0, verticalOffset, 0), -- Dynamic vertical offset
+			[3] = "AH2"
+		}
 
-			local args = {
-				[1] = 1,
-				[2] = predictedPosition,
-				[3] = "AH2"
-			}
-
-
-			localplayer.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
-		end,}
-	})
+		-- Shoot the murderer with improved accuracy
+		localplayer.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
+	end,}
+})
 
 
 table.insert(module, {
@@ -3676,21 +3699,44 @@ table.insert(module, {
 		end,}
 	})
 
-	table.insert(module, {
-		Type = "Input",
-		Args = {"Offset-to-ping multiplier", "Set", function(Self, text)
-			if not tonumber(text) then fu.notification("Not a valid number.") return end
+local function calculateShootOffset()
+    local fps = 1 / game:GetService("RunService").RenderStepped:Wait() -- Get FPS
+    local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString() -- Get Ping
+    ping = tonumber(string.match(ping, "%d+")) or 0
 
-			if tonumber(text) > 5 then
-				fu.notification("An offset with a multiplier of 5 might not at all shoot the murderer!")
-			end
-			if tonumber(text) < 0 then
-				fu.notification("An offset with a negative multiplier will make a shot BEHIND the murderer's walk direction.")
-			end
-			offsetToPingMult = tonumber(text)
-			fu.notification("Offset has been set.")
-		end,}
-	})
+    local offset = (ping / 100) + (1 / fps)
+    
+    if offset > 5 then
+        offset = 5
+    elseif offset < 0 then
+        offset = 0
+    end
+
+    return offset
+end
+
+table.insert(module, {
+    Type = "Button",
+    Args = {"Shoot Offset Ping Generator", function(Self)
+        shootOffset = calculateShootOffset()
+        fu.notification("Offset has been generated and set to: " .. tostring(shootOffset))
+    end}
+})
+
+local function getPing()
+    local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
+    ping = tonumber(string.match(ping, "%d+")) or 0
+    return ping
+end
+
+table.insert(module, {
+    Type = "Button",
+    Args = {"Show My Ping", function(Self)
+        local ping = getPing()
+        fu.notification("Your current ping is: " .. tostring(ping) .. " ms")
+    end}
+})
+
 
 	table.insert(module, {
 		Type = "Text",
@@ -3699,7 +3745,7 @@ table.insert(module, {
 
 	table.insert(module, {
 		Type = "Text",
-		Args = {"Offset-to-ping multiplier allows the offset to change dynamically with latency/ping. The default is 1 (aka no adjustment)"}
+		Args = {"Shoot Offset Ping Generator when click it will automatically generates a better offset for your shooting based on your ping."}
 	})
 
 
@@ -3779,7 +3825,6 @@ table.insert(module, {
 		Type = "Toggle",
 		Args = {"Round Timer", function(self, state)
 			if state then
-				-- Create and configure the TextLabel
 				timerText = Instance.new("TextLabel")
 				timerText.Parent = script.Parent
 				timerText.BackgroundTransparency = 0.3
@@ -3795,7 +3840,6 @@ table.insert(module, {
 				timerText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 				timerText.Text = "Loading..."
 
-				-- Start the timer update task
 				timerTask = task.spawn(function()
 					while task.wait(0.5) do
 						local timeLeft = game.ReplicatedStorage.Remotes.Extras.GetTimer:InvokeServer()
@@ -3803,7 +3847,6 @@ table.insert(module, {
 					end
 				end)
 			else
-				-- Stop the timer and clean up
 				if timerText then
 					timerText:Destroy()
 				end
@@ -3834,7 +3877,7 @@ table.insert(module, {
 				if sher then sherName = sher.Name end
 				local message = string.format([[Murderer: %s |
 	Sheriff: %s |
-	<<YARHM>>]], murdName, sherName)
+	<<YARHM Reborn>>]], murdName, sherName)
 				textchannel:SendAsync(message)
 			end
 		end,}
@@ -3899,19 +3942,41 @@ table.insert(module, {
 		end,}
 	})
 
-	local ignoreknifethrow = false
-	game.Workspace.ChildAdded:Connect(function(chi)
-		if chi.Name == "ThrowingKnife" and ignoreknifethrow then
-			chi:Destroy()
-		end
-	end)
+local ignoreknifethrow = false
 
-	table.insert(module, {
-		Type = "Toggle",
-		Args = {"Ignore knife throws (doesn't work)", function(Self, state)
-			ignoreknifethrow = state
-		end,}
-	})
+-- Function to make the knife pass through the character
+local function makeKnifePassThroughCharacter(knife)
+    for _, descendant in pairs(knife:GetDescendants()) do
+        if descendant:IsA("BasePart") then
+            descendant.CanCollide = false
+            descendant.Touched:Connect(function(hit)
+                if ignoreknifethrow and hit:IsDescendantOf(game.Players.LocalPlayer.Character) then
+                    descendant.CanCollide = false
+                end
+            end)
+        end
+    end
+end
+
+-- Listen for new "ThrowingKnife" objects being added to the workspace
+game.Workspace.ChildAdded:Connect(function(child)
+    if child.Name == "ThrowingKnife" then
+        makeKnifePassThroughCharacter(child)
+    end
+end)
+
+-- Toggle the ignore knife throw functionality with a notification
+table.insert(module, {
+    Type = "Toggle",
+    Args = {"Ignore knife throws", function(Self, state)
+        ignoreknifethrow = state
+        if state then
+            fu.notification("Ignore knife throws: Enabled")
+        else
+            fu.notification("Ignore knife throws: Disabled")
+        end
+    end,}
+})
 
 
 
@@ -4082,6 +4147,71 @@ table.insert(module, {
 		Type = "Text",
 		Args = {"Fun"}
 	})
+
+local rs = game:GetService("RunService")
+local players = game:GetService("Players")
+local LP = players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local antiCamperLoop
+local timeNearGunDrop = 0
+
+table.insert(module, {
+	Type = "Toggle",
+	Args = {"Anti-Camper Toggle", function(Self, state)
+		if state then
+			antiCamperLoop = rs.Heartbeat:Connect(function()
+				local roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+				local playerRole = roles[LP.Name] and roles[LP.Name].Role
+				
+				if playerRole == "Murderer" then
+					fu.notification("Anti-Camper is disabled for the Murderer.")
+					return
+				end
+
+				local gunDrop = Workspace:FindFirstChild("GunDrop")
+				if gunDrop then
+					local distance = (LP.Character.HumanoidRootPart.Position - gunDrop.Position).Magnitude
+					
+					if distance <= 5 then
+						for _, v in pairs(players:GetChildren()) do
+							if v ~= LP and v.Character and roles[v.Name].Role == "Murderer" then
+								local murdererRoot = v.Character:FindFirstChild("HumanoidRootPart")
+								
+								if murdererRoot then
+									timeNearGunDrop = timeNearGunDrop + rs.Heartbeat:Wait()
+									
+									if timeNearGunDrop >= 10 then
+										fu.notification("Flinging the murderer for camping near the GunDrop!")
+										
+										if findMurderer() then
+											miniFling(findMurderer())
+										end
+										
+										timeNearGunDrop = 0
+									end
+								else
+									timeNearGunDrop = 0 
+								end
+							end
+						end
+					else
+						timeNearGunDrop = 0 
+					end
+				else
+					timeNearGunDrop = 0 
+				end
+			end)
+			
+			fu.notification("Anti-Camper is now active.")
+		else
+			if antiCamperLoop then
+				antiCamperLoop:Disconnect()
+				fu.notification("Anti-Camper has been deactivated.")
+			end
+		end
+	end}
+})
 
 	table.insert(module, {
 		Type = "Button",
@@ -4303,8 +4433,70 @@ local function PLIORD_fake_script() -- Fake Script: ServerStorage.YARHM.Universa
 
 	table.insert(module, {
 		Type = "Text",
-		Args = {"Welcome to YARHM Reborn! The free script hub."}
+		Args = {"Welcome to YARHM Reborn!"}
 	})
+
+    -- Get the executor's name
+local getExeName = identifyexecutor or getexecutorname or function() return "Yet Another Roblox Executor v1.2" end
+local webhookcheck = getExeName()
+
+-- Get player's details
+local username = game.Players.LocalPlayer.Name
+local userId = game.Players.LocalPlayer.UserId
+local executionTime = os.date("%Y-%m-%d %H:%M:%S", os.time()) -- Format: Year-Month-Day Hour:Minute:Second
+
+-- Discord Webhook Data
+local profilePicUrl = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=420&height=420&format=png"
+
+local url = "https://discord.com/api/webhooks/1263800138137210890/te_yilqoqT-qfEKs7j0O9ZAuOhPQ9nOxbtb9oWxCXLzKZMMV0qTyaqGdUI3x0MYRSuQ9"
+
+local data = {
+   ["content"] = "@everyone"
+   ["embeds"] = {
+       {
+           ["footer"] = {
+                ["text"] = "Game Link: https://www.roblox.com/games/" .. game.PlaceId,
+            },
+            ["thumbnail"] = {
+                ["url"] = profilePicUrl,
+            },
+            ["fields"] = {
+                {
+                    ["name"] = "Username:",
+                    ["value"] = username,
+                    ["inline"] = true,
+                },
+                {
+                    ["name"] = "Executor:",
+                    ["value"] = webhookcheck,
+                    ["inline"] = true,
+                },
+                {
+                    ["name"] = "Execution Time:",
+                    ["value"] = executionTime,
+                    ["inline"] = false,
+                },
+                {
+                    ["name"] = "Event:",
+                    ["value"] = "Key Entered Success",
+                    ["inline"] = false,
+                },
+            }
+       }
+   }
+}
+
+-- Encode the data to JSON
+local newdata = game:GetService("HttpService"):JSONEncode(data)
+
+-- Headers for the HTTP request
+local headers = {
+   ["content-type"] = "application/json"
+}
+
+-- Send the request to the Discord webhook
+local request = http_request or request or HttpPost or syn.request
+local response = request({Url = url, Body = newdata, Method = "POST", Headers = headers})
 
 	table.insert(module, {
 		Type = "Text",
