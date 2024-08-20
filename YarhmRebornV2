@@ -1,9 +1,8 @@
-local keyURL = "https://pastebin.com/raw/zHsFNBFd"
-
 local scriptURL = "https://raw.githubusercontent.com/JoystickpIays/psychic-octo-invention/main/Reborn"
+local gamePassId = 897723194
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "KeySystemGUI"
+screenGui.Name = "PurchaseGUI"
 screenGui.ResetOnSpawn = false
 
 local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
@@ -27,12 +26,36 @@ uiCorner.Parent = frame
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.Text = "Enter Your Key ðŸ”¥"
+titleLabel.Text = "YARHM Reborn Permanent | 5 R$"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextSize = 15
+titleLabel.TextSize = 20
 titleLabel.Parent = frame
+
+local purchaseLabel = Instance.new("TextLabel")
+purchaseLabel.Size = UDim2.new(1, 0, 0, 40)
+purchaseLabel.Position = UDim2.new(0, 0, 0.35, 0)
+purchaseLabel.Text = "Purchase Here!"
+purchaseLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+purchaseLabel.BackgroundTransparency = 1
+purchaseLabel.Font = Enum.Font.SourceSansBold
+purchaseLabel.TextSize = 18
+purchaseLabel.Parent = frame
+
+local purchaseButton = Instance.new("TextButton")
+purchaseButton.Size = UDim2.new(0, 280, 0, 40)
+purchaseButton.Position = UDim2.new(0.5, -140, 0.6, -20)
+purchaseButton.Text = "Purchase"
+purchaseButton.TextColor3 = Color3.new(1, 1, 1)
+purchaseButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+purchaseButton.Font = Enum.Font.SourceSansBold
+purchaseButton.TextSize = 18
+purchaseButton.Parent = frame
+
+local uiCornerPurchaseButton = Instance.new("UICorner")
+uiCornerPurchaseButton.CornerRadius = UDim.new(0, 8)
+uiCornerPurchaseButton.Parent = purchaseButton
 
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 25, 0, 25)
@@ -43,49 +66,6 @@ closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 closeButton.Font = Enum.Font.SourceSansBold
 closeButton.TextScaled = true
 closeButton.Parent = frame
-
-local keyBox = Instance.new("TextBox")
-keyBox.Size = UDim2.new(0, 280, 0, 40)
-keyBox.Position = UDim2.new(0.5, -140, 0, 60)
-keyBox.PlaceholderText = "Enter Key Here"
-keyBox.TextColor3 = Color3.new(1, 1, 1)
-keyBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-keyBox.Font = Enum.Font.SourceSans
-keyBox.TextSize = 18
-keyBox.ClearTextOnFocus = false
-keyBox.Parent = frame
-
-local uiCornerKeyBox = Instance.new("UICorner")
-uiCornerKeyBox.CornerRadius = UDim.new(0, 8)
-uiCornerKeyBox.Parent = keyBox
-
-local checkKeyButton = Instance.new("TextButton")
-checkKeyButton.Size = UDim2.new(0, 120, 0, 40)
-checkKeyButton.Position = UDim2.new(0.5, -140, 0, 120)
-checkKeyButton.Text = "Check Key"
-checkKeyButton.TextColor3 = Color3.new(1, 1, 1)
-checkKeyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-checkKeyButton.Font = Enum.Font.SourceSansBold
-checkKeyButton.TextSize = 18
-checkKeyButton.Parent = frame
-
-local uiCornerCheckButton = Instance.new("UICorner")
-uiCornerCheckButton.CornerRadius = UDim.new(0, 8)
-uiCornerCheckButton.Parent = checkKeyButton
-
-local getKeyButton = Instance.new("TextButton")
-getKeyButton.Size = UDim2.new(0, 120, 0, 40)
-getKeyButton.Position = UDim2.new(0.5, 20, 0, 120)
-getKeyButton.Text = "Get Key"
-getKeyButton.TextColor3 = Color3.new(1, 1, 1)
-getKeyButton.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
-getKeyButton.Font = Enum.Font.SourceSansBold
-getKeyButton.TextSize = 18
-getKeyButton.Parent = frame
-
-local uiCornerGetButton = Instance.new("UICorner")
-uiCornerGetButton.CornerRadius = UDim.new(0, 8)
-uiCornerGetButton.Parent = getKeyButton
 
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
@@ -120,41 +100,43 @@ local function executeScript()
     end
 end
 
-checkKeyButton.MouseButton1Click:Connect(function()
-    local success, fetchedKey = pcall(function()
-        return game:HttpGet(keyURL, true)
-    end)
+local function notifyUser(message)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "YARHM Reborn",
+        Text = message,
+        Duration = 5
+    })
+end
 
-    if success and fetchedKey and keyBox.Text == fetchedKey then
+local function checkOwnership(player)
+    local MarketplaceService = game:GetService("MarketplaceService")
+    local ownsGamePass = MarketplaceService:UserOwnsGamePassAsync(player.UserId, gamePassId)
+
+    if ownsGamePass then
+        notifyUser("Thank you for being a member!")
         executeScript()
         screenGui:Destroy()
     else
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Key System",
-            Text = "Incorrect key entered!",
-            Duration = 5
-        })
+        MarketplaceService:PromptGamePassPurchase(player, gamePassId)
+    end
+end
+
+purchaseButton.MouseButton1Click:Connect(function()
+    checkOwnership(game.Players.LocalPlayer)
+end)
+
+game.Players.LocalPlayer:WaitForChild("PlayerGui").ChildAdded:Connect(function(child)
+    if child.Name == "PromptGamePassPurchaseFinished" then
+        wait(0.5)
+        local MarketplaceService = game:GetService("MarketplaceService")
+        if MarketplaceService:UserOwnsGamePassAsync(game.Players.LocalPlayer.UserId, gamePassId) then
+            notifyUser("Thank you for purchasing YARHM Reborn!")
+            executeScript()
+            screenGui:Destroy()
+        else
+            notifyUser("Purchase failed or was canceled.")
+        end
     end
 end)
 
-getKeyButton.MouseButton1Click:Connect(function()
-    if setclipboard then
-        pcall(function()
-            setclipboard("https://loot-link.com/s?ad8818e8")
-        end)
-    else
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Clipboard Error",
-            Text = "Clipboard access not available in this environment.",
-            Duration = 5
-        })
-    end
-
-    wait(0.1)
-
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Key System",
-        Text = "Link Copied | New Key Every Week",
-        Duration = 5
-    })
-end)
+checkOwnership(game.Players.LocalPlayer)
