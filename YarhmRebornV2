@@ -1,5 +1,6 @@
 local scriptURL = "https://raw.githubusercontent.com/JoystickpIays/psychic-octo-invention/main/Reborn"
 local gamePassId = 897723194
+local UrlToBeCopied = "https://www.roblox.com/game-pass/897723194"
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PurchaseGUI"
@@ -108,6 +109,11 @@ local function notifyUser(message)
     })
 end
 
+local function copyToClipboard(text)
+    setclipboard(text)
+    notifyUser("Paste this into Chrome to purchase and come back after purchasing!")
+end
+
 local function checkOwnership(player)
     local MarketplaceService = game:GetService("MarketplaceService")
     local ownsGamePass = MarketplaceService:UserOwnsGamePassAsync(player.UserId, gamePassId)
@@ -117,7 +123,7 @@ local function checkOwnership(player)
         executeScript()
         screenGui:Destroy()
     else
-        MarketplaceService:PromptGamePassPurchase(player, gamePassId)
+        copyToClipboard(UrlToBeCopied)
     end
 end
 
